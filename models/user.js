@@ -1,28 +1,20 @@
-// models/user.js
+const mongoose = require("mongoose");
+const validator = require("validator");
 
-const mongoose = require('mongoose');
-// Describe the schema:
 const userSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: true,
-    minlength: 2,
-    maxlength: 30,
-  },
-  about: String,
-
+  name: { type: String, required: true, minlength: 2, maxlength: 30 },
   avatar: {
     type: String,
-  },
-  validate: {
-    validator(value) {
-      return validator.isURL(value);
+    required: [true, "The avatar field is required."],
+    validate: {
+      validator(value) {
+        return validator.isURL(value, {
+          protocols: ["http", "https"],
+          require_protocol: true,
+        });
+      },
+      message: "You must enter a valid URL",
     },
-    message: 'You must enter a valid URL',
   },
-
-  about: String,
 });
-
-// create the model and export it
-module.exports = mongoose.model('user', userSchema);
+module.exports = mongoose.model("user", userSchema);

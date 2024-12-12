@@ -1,50 +1,45 @@
-// models/user.js
+const mongoose = require("mongoose");
+const validator = require("validator");
 
-const mongoose = require('mongoose');
-// Describe the schema:
-const clothingIteamSchema = new mongoose.Schema({
+const clothingItemSchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
     minlength: 2,
     maxlength: 30,
   },
-  about: String,
-
   weather: {
     type: String,
     required: true,
-    enum: ['hot', 'warm', 'cold'],
-  },
-  about: String,
-
-  imageUrl: {
-   type: String,
-  },
-  about: String,
-  validate: {
-    validator(value) {
-      return validator.isURL(value);
+    enum: {
+      values: ["hot", "warm", "cold"],
+      message: "Weather must be 'hot', 'warm', or 'cold'.",
     },
-    message: 'You must enter a valid URL',
   },
-
+  imageUrl: {
+    type: String,
+    required: true,
+    validate: {
+      validator(value) {
+        return validator.isURL(value);
+      },
+      message: "You must enter a valid URL for the image.",
+    },
+  },
   owner: {
-    type: ObjectId,
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "user",
     required: true,
   },
-  about: String,
-
   likes: {
+    type: [mongoose.Schema.Types.ObjectId],
+    ref: "user",
+    default: [],
   },
-  about: String,
-
   createdAt: {
     type: Date,
-    Date: now,
+    default: Date.now,
   },
-  about: String,
 });
 
-// create the model and export it
-module.exports = mongoose.model('clothingItem', userSchema);
+module.exports = mongoose.model("Item", clothingItemSchema);
