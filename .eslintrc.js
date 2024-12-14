@@ -3,8 +3,6 @@ module.exports = {
     es2021: true,
     node: true,
   },
-
-  // Add the necessary extensions.
   extends: ["eslint:recommended", "airbnb-base", "prettier"],
   overrides: [
     {
@@ -22,5 +20,7 @@ module.exports = {
     sourceType: "module",
   },
   rules: {
+    "no-console": ["warn", { allow: ["error"] }],
+    "no-underscore-dangle": ["error", { allow: ["_id"] }],
   },
 };
