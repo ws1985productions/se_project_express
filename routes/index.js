@@ -1,16 +1,20 @@
 const express = require("express");
-const userRouter = require("./users");
-const itemRouter = require("./clothingItems");
-const { NOT_FOUND } = require("../utils/errors");
+const userRoutes = require("./users");
+const clothingRoutes = require("./clothingItems");
+const { createUser, login } = require("../controllers/users");
+const auth = require("../middlewares/auth");
 
 const router = express.Router();
 
-
-router.use("/users", userRouter);
-router.use("/items", itemRouter);
-
-router.use((req, res) => {
-  res.status(NOT_FOUND).send({ message: "Requested resource not found." });
+router.get("/", (req, res) => {
+  res.send({ message: "Welcome to my API!" });
 });
+
+router.post("/signup", createUser);
+router.post("/signin", login);
+
+router.use("/users", auth, userRoutes);
+
+router.use("/items", clothingRoutes);
 
 module.exports = router;

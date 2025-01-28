@@ -1,14 +1,22 @@
-# Project 12: WTWR (What to Wear?): Back End
-A description of the project and its functionality
-The back-end project is focused on creating a server for the WTWR application. Understanding of how to work with databases, set up security and testing, and deploy web applications on a remote machine. The eventual goal is to create a server with an API and user authorization.
+# WTWR (What to Wear?): is a back-end project that provides a RESTful API for managing user profiles and clothing items. The application is designed to serve as the server-side logic for a weather-based wardrobe recommendation system. It allows users to:
 
-Technologies and techniques used
-Developed an Express.js project to build a server-side application.
+View and manage user profiles.
+Add, view, and delete clothing items.
+Like or dislike clothing items to personalize recommendations.
+This back-end is built using Node.js and Express.js and integrates a MongoDB database to store user and clothing data.
 
-Implemented error-handling mechanisms to improve application reliability.
+The back-end project is focused on creating a server for the WTWR application. You’ll gain a deeper understanding of how to work with databases, set up security and testing, and deploy web applications on a remote machine. The eventual goal is to create a server with an API and user authorization.
 
-Configured routes and controllers to handle API requests and ensure seamless functionality.
+## Running the Project
 
-Integrated a MongoDB database with the server for efficient data storage and retrieval.
+`npm run start` — to launch the server
 
-project on GitHub Pages
+`npm run dev` — to launch the server with the hot reload feature
+
+## Backend Repository
+
+You can find the backend code for this project in the following repository: https://github.com/ws1985productions/se_project_express
+
+### Testing
+
+Before committing your code, make sure you edit the file `sprint.txt` in the root folder. The file `sprint.txt` should contain the number of the sprint you're currently working on. For ex. 12
