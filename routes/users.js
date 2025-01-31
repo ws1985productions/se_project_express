@@ -1,10 +1,12 @@
-const express = require("express");
-const { getCurrentUser, updateUser } = require("../controllers/users");
+const router = require("express").Router();
+const { getUser, updateUser } = require("../controllers/users");
+const auth = require("../middlewares/auth");
 
-const router = express.Router();
+// Apply auth middleware to all routes in this router
+router.use(auth);
 
-router.get("/me", getCurrentUser);
-
+// Define user routes
+router.get("/me", getUser);
 router.patch("/me", updateUser);
 
 module.exports = router;

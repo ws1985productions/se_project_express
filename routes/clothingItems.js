@@ -1,20 +1,21 @@
-const express = require("express");
+const router = require("express").Router();
+const auth = require("../middlewares/auth"); // Import the authorization middleware
+
 const {
-  getClothingItems,
-  createClothingItem,
-  deleteClothingItem,
+  createItem,
+  getItems,
+  deleteItem,
   likeItem,
   dislikeItem,
 } = require("../controllers/clothingItems");
-const auth = require("../middlewares/auth");
 
-const router = express.Router();
+// READ all items (public route, no authorization needed)
+router.get("/", getItems);
 
-router.get("/", getClothingItems);
-
-router.post("/", auth, createClothingItem);
-router.delete("/:itemId", auth, deleteClothingItem);
-router.put("/:itemId/likes", auth, likeItem);
-router.delete("/:itemId/likes", auth, dislikeItem);
+// The following routes require authorization
+router.post("/", auth, createItem); // CREATE an item
+router.put("/:itemId/likes", auth, likeItem); // Like an item
+router.delete("/:itemId", auth, deleteItem); // DELETE an item
+router.delete("/:itemId/likes", auth, dislikeItem); // Remove like from an item
 
 module.exports = router;
