@@ -1,12 +1,9 @@
 const router = require("express").Router();
-const { getUser, updateUser } = require("../controllers/users");
+const { getCurrentUser, updateProfile } = require("../controllers/users");
 const auth = require("../middlewares/auth");
 
-// Apply auth middleware to all routes in this router
-router.use(auth);
+router.get("/me", auth, getCurrentUser);
 
-// Define user routes
-router.get("/me", getUser);
-router.patch("/me", updateUser);
+router.patch("/me", auth, updateProfile);
 
 module.exports = router;

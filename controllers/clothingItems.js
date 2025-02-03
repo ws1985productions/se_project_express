@@ -1,149 +1,172 @@
-const ClothingItem = require("../models/clothingItem");
-const { ERROR_CODES, ERROR_MESSAGES } = require("../utils/errors");
-const handleError = require("../utils/errorHandler");
+const mongoose = require("mongoose");
+const Item = require("../models/clothingItem");
+const {
+  BAD_REQUEST,
+  NOT_FOUND,
+  FORBIDDEN,
+  INTERNAL_SERVER_ERROR,
+  UNAUTHORIZED,
+} = require("../utils/errors");
 
-// Create a clothing item
-const createItem = (req, res) => {
+const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
+
+const getItems = (req, res, next) => {
+  Item.find({})
+    .then((items) => res.send(items))
+    .catch((err) => {
+      console.error("Error in getItems", err.message);
+      next(err);
+    });
+};
+
+const createItem = (req, res, next) => {
   const { name, weather, imageUrl } = req.body;
-  const owner = req.user?._id;
-  if (!owner) {
-    console.error("Missing owner in request");
-    return res
-      .status(ERROR_CODES.BAD_REQUEST)
-      .send({ message: ERROR_MESSAGES.MISSING_OWNER });
+
+  if (!req.user || !req.user._id) {
+    const error = new Error("User is not authenticated.");
+    error.statusCode = UNAUTHORIZED;
+    console.error("Authentication error:", error);
+    return next(error);
   }
-  if (!name || !weather || !imageUrl) {
-    return res
-      .status(ERROR_CODES.BAD_REQUEST)
-      .send({ message: ERROR_MESSAGES.MISSING_FIELDS });
+
+  const owner = req.user._id;
+
+  return Item.create({ name, weather, imageUrl, owner })
+    .then((item) => res.status(201).send(item))
+    .catch((err) => {
+      console.error("Error in createItem:", err.message);
+      const error = new Error(
+        err.name === "ValidationError" ? "Invalid input data." : "An unexpected error occurred."
+      );
+      error.statusCode = err.name === "ValidationError" ? BAD_REQUEST : INTERNAL_SERVER_ERROR;
+
+      return next(error);
+    });
+};
+
+const getItem = (req, res, next) => {
+  const { id } = req.params;
+
+  if (!isValidObjectId(id)) {
+    console.error("Invalid ID format:", id);
+    const err = new Error("ID is invalid.");
+    err.statusCode = BAD_REQUEST;
+    return next(err);
   }
-  return ClothingItem.create({ name, weather, imageUrl, owner })
+
+  return Item.findById(id)
     .then((item) => {
-      console.info("Item created successfully:", item);
-      return res.status(201).send({ data: item });
+      if (!item) {
+        const error = new Error("Item not found.");
+        error.statusCode = NOT_FOUND;
+        throw error;
+      }
+      return res.send(item);
     })
-    .catch((err) => handleError(err, res));
-};
-
-// Get all clothing items
-const getItems = (req, res) => {
-  ClothingItem.find({})
-    .then((items) => res.status(200).send({ data: items }))
-    .catch((err) => handleError(err, res));
-};
-
-// Delete a clothing item
-const deleteItem = async (req, res) => {
-  const { itemId } = req.params;
-  const userId = req.user._id; // Logged-in user's ID
-
-  try {
-    const item = await ClothingItem.findById(itemId).orFail(() => {
-      const error = new Error(ERROR_MESSAGES.NOT_FOUND);
-      error.name = "DocumentNotFoundError";
-      throw error;
+    .catch((err) => {
+      console.error("Error in getItems:", err.message);
+      next(err);
     });
+};
 
-    if (item.owner.toString() !== userId) {
-      return res
-        .status(ERROR_CODES.BAD_CARD_REMOVAL)
-        .send({ message: ERROR_MESSAGES.BAD_CARD_REMOVAL });
-    }
+const deleteItem = (req, res, next) => {
+  const { itemId } = req.params;
 
-    await item.deleteOne();
-    return res.status(200).send({ message: "Item deleted successfully." });
-  } catch (err) {
-    if (err.name === "CastError") {
-      return res
-        .status(ERROR_CODES.BAD_REQUEST)
-        .send({ message: ERROR_MESSAGES.INVALID_ID_FORMAT });
-    }
-
-    if (err.name === "DocumentNotFoundError") {
-      return res
-        .status(ERROR_CODES.NOT_FOUND)
-        .send({ message: ERROR_MESSAGES.NOT_FOUND });
-    }
-
-    return res
-      .status(ERROR_CODES.SERVER_ERROR)
-      .send({ message: ERROR_MESSAGES.SERVER_ERROR });
+  if (!isValidObjectId(itemId)) {
+    console.error("Invalid ID format:", itemId);
+    const error = new Error("Invalid item ID.");
+    error.statusCode = BAD_REQUEST;
+    return next(error);
   }
-};
 
-// Like a clothing item
-const likeItem = (req, res) => {
-  const { itemId } = req.params;
-  ClothingItem.findByIdAndUpdate(
-    itemId,
-    { $addToSet: { likes: req.user._id } }, // Add user ID if not already in likes array
-    { new: true }
-  )
-    .orFail(() => {
-      const error = new Error("DocumentNotFoundError");
-      error.name = "DocumentNotFoundError";
-      throw error;
+  return Item.findById(itemId)
+
+    .then((item) => {
+      if (!item) {
+        const error = new Error("Item not found.");
+        error.statusCode = NOT_FOUND;
+        throw error;
+      }
+      if (item.owner.toString() !== req.user._id) {
+        const error = new Error(
+          "You do not have permission to delete this item."
+        );
+        error.statusCode = FORBIDDEN;
+        throw error;
+      }
+
+      return Item.findByIdAndDelete(itemId).then(() =>
+        res.send({ message: "Item deleted successfully." })
+      );
     })
-    .then((item) => res.status(200).send({ data: item }))
-    .catch((err) => {
-      console.error("Error liking item:", err); // Optional: Replace with a logging library
-
-      if (err.name === "DocumentNotFoundError") {
-        return res
-          .status(ERROR_CODES.NOT_FOUND)
-          .send({ message: ERROR_MESSAGES.NOT_FOUND });
-      }
-
-      if (err.name === "CastError") {
-        return res
-          .status(ERROR_CODES.BAD_REQUEST)
-          .send({ message: ERROR_MESSAGES.INVALID_ID_FORMAT });
-      }
-
-      return res
-        .status(ERROR_CODES.SERVER_ERROR)
-        .send({ message: ERROR_MESSAGES.SERVER_ERROR });
+    .catch((error) => {
+      console.error("Error in deleteItems", error.message);
+      next(error);
     });
 };
 
-// Dislike a clothing item
-const dislikeItem = (req, res) => {
+const likeItem = (req, res, next) => {
   const { itemId } = req.params;
-  ClothingItem.findByIdAndUpdate(
+
+  if (!isValidObjectId(itemId)) {
+    console.error("Invalid ID format:", itemId);
+    const error = new Error("Invalid item ID.");
+    error.statusCode = BAD_REQUEST;
+    return next(error);
+  }
+
+  return Item.findByIdAndUpdate(
     itemId,
-    { $pull: { likes: req.user._id } }, // Remove user ID from likes array
+    { $addToSet: { likes: req.user._id } },
     { new: true }
   )
-    .orFail(() => {
-      const error = new Error("DocumentNotFoundError");
-      error.name = "DocumentNotFoundError";
-      throw error;
+    .then((item) => {
+      if (!item) {
+        const error = new Error("Item not found.");
+        error.statusCode = NOT_FOUND;
+        throw error;
+      }
+      return res.send(item);
     })
-    .then((item) => res.status(200).send({ data: item }))
-    .catch((err) => {
-      console.error("Error disliking item:", err); // Optional: Replace with a logging library
+    .catch((error) => {
+      console.error("Error in likeItem", error.message);
+      next(error);
+    });
+};
 
-      if (err.name === "DocumentNotFoundError") {
-        return res
-          .status(ERROR_CODES.NOT_FOUND)
-          .send({ message: ERROR_MESSAGES.NOT_FOUND });
+const dislikeItem = (req, res, next) => {
+  const { itemId } = req.params;
+
+  if (!isValidObjectId(itemId)) {
+    console.error("Invalid ID format:", itemId);
+    const error = new Error("Invalid item ID.");
+    error.statusCode = BAD_REQUEST;
+    return next(error);
+  }
+
+  return Item.findByIdAndUpdate(
+    itemId,
+    { $pull: { likes: req.user._id } },
+    { new: true }
+  )
+    .then((item) => {
+      if (!item) {
+        const error = new Error("Item not found.");
+        error.statusCode = NOT_FOUND;
+        throw error;
       }
-
-      if (err.name === "CastError") {
-        return res
-          .status(ERROR_CODES.BAD_REQUEST)
-          .send({ message: ERROR_MESSAGES.INVALID_ID_FORMAT });
-      }
-
-      return res
-        .status(ERROR_CODES.SERVER_ERROR)
-        .send({ message: ERROR_MESSAGES.SERVER_ERROR });
+      return res.send(item);
+    })
+    .catch((error) => {
+      console.error("Error in dislikeItem", error.message);
+      next(error);
     });
 };
 
 module.exports = {
-  createItem,
   getItems,
+  createItem,
+  getItem,
   deleteItem,
   likeItem,
   dislikeItem,
