@@ -1,45 +1,36 @@
 require("dotenv").config();
+
 const express = require("express");
+const mongoose = require("mongoose");
 const cors = require("cors");
-const winston = require("winston");
-const { connectToDatabase } = require("./db");
-const routes = require("./routes");
-const { ERROR_CODES } = require("./utils/errors");
-
-const { PORT = 3001 } = process.env;
-
-const logger = winston.createLogger({
-  level: "info",
-  format: winston.format.combine(
-    winston.format.timestamp(),
-    winston.format.json()
-  ),
-  transports: [new winston.transports.Console()],
-});
+const { errors } = require("celebrate");
+const mainRouter = require("./routes/index");
+const errorHandler = require("./middleware/error-handler");
+const { requestLogger, errorLogger } = require("./middleware/logger");
+const { limiter } = require("./middleware/limiter");
 
 const app = express();
+const { PORT = 3001 } = process.env;
 
-connectToDatabase();
-
+mongoose
+  .connect("mongodb://127.0.0.1:27017/wtwr_db")
+  .then(() => console.log("Connected to database."))
+  .catch(console.error);
 app.use(express.json());
 app.use(cors());
+
+app.get("/crash-test", () => {
+  setTimeout(() => {
+    throw new Error("Server will crash now");
+  }, 0);
+});
+app.use(limiter);
+app.use(requestLogger);
 app.use(routes);
-
-app.use((req, res) => {
-  res
-    .status(ERROR_CODES.NOT_FOUND)
-    .send({ message: "Requested resource not found" });
-});
-
-app.use((err, req, res, next) => {
-  const {
-    statusCode = ERROR_CODES.SERVER_ERROR,
-    message = "An error occurred on the server",
-  } = err;
-  logger.error(`Error: ${message}, Status Code: ${statusCode}`);
-  res.status(statusCode).send({ message });
-});
-
+app.use("/", mainRouter);
+app.use(errorLogger);
+app.use(errors());
+app.use(errorHandler);
 app.listen(PORT, () => {
-  logger.info(`App is running on port ${PORT}`);
+  console.log(`running on port ${PORT}`);
 });

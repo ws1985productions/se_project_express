@@ -1,11 +1,10 @@
-const ERROR_CODES = {
-  BAD_REQUEST: 400, // Invalid data passed
-  BAD_AUTHORIZATION: 401, // Incorrect authorization
-  BAD_CARD_REMOVAL: 403, // User is trying remove another users card
-  NOT_FOUND: 404, // Resource not found
-  USED_EMAIL: 409, // User entered an email that already exsists
-  SERVER_ERROR: 500, // Default server error
-};
+const BAD_REQUEST_STATUS = 400;
+const UNAUTHORIZED = 401;
+const FORBIDDEN = 403;
+const NOT_FOUND_STATUS = 404;
+const CONFLICT = 409;
+const SERVER_ERROR_STATUS = 500;
+const REQUEST_CREATED = 201;
 
 const ERROR_MESSAGES = {
   BAD_REQUEST: "Bad request in data or syntax.",
@@ -19,4 +18,12 @@ const ERROR_MESSAGES = {
   MISSING_FIELDS: "Missing required fields: name, weather, imageUrl.",
 };
 
-module.exports = { ERROR_CODES, ERROR_MESSAGES };
+module.exports = {
+  BAD_REQUEST_STATUS,
+  NOT_FOUND_STATUS,
+  SERVER_ERROR_STATUS,
+  REQUEST_CREATED,
+  UNAUTHORIZED,
+  FORBIDDEN,
+  CONFLICT,
+};
