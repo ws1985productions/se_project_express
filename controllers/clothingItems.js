@@ -1,170 +1,96 @@
 const Item = require("../models/clothingItem");
-const { REQUEST_CREATED} = require("../utils/errors");
+const { REQUEST_CREATED } = require("../utils/errors");
 const BadRequestError = require("../contructors/bad-request-err");
 const ForbiddenError = require("../contructors/forbidden-err");
 const NotFoundError = require("../contructors/not-found-err");
 
-
-const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
-
 const getItems = (req, res, next) => {
   Item.find({})
-    .then((items) => res.send(items))
-    .catch((err) => {
-      console.error("Error in getItems", err.message);
-      next(err);
-    });
+    .then((items) => {
+      res.send(items);
+    })
+    .catch(next);
 };
 
 const createItem = (req, res, next) => {
   const { name, weather, imageUrl } = req.body;
-
-  if (!req.user || !req.user._id) {
-    const error = new Error("User is not authenticated.");
-    error.statusCode = UNAUTHORIZED;
-    console.error("Authentication error:", error);
-    return next(error);
-  }
-
   const owner = req.user._id;
-
-  return Item.create({ name, weather, imageUrl, owner })
-    .then((item) => res.status(201).send(item))
-    .catch((err) => {
-      console.error("Error in createItem:", err.message);
-      const error = new Error(
-        err.name === "ValidationError" ? "Invalid input data." : "An unexpected error occurred."
-      );
-      error.statusCode = err.name === "ValidationError" ? BAD_REQUEST : INTERNAL_SERVER_ERROR;
-
-      return next(error);
-    });
-};
-
-const getItem = (req, res, next) => {
-  const { id } = req.params;
-
-  if (!isValidObjectId(id)) {
-    console.error("Invalid ID format:", id);
-    const err = new Error("ID is invalid.");
-    err.statusCode = BAD_REQUEST;
-    return next(err);
-  }
-
-  return Item.findById(id)
+  Item.create({ name, weather, imageUrl, owner })
     .then((item) => {
-      if (!item) {
-        const error = new Error("Item not found.");
-        error.statusCode = NOT_FOUND;
-        throw error;
-      }
-      return res.send(item);
+      res.status(REQUEST_CREATED).send(item);
     })
     .catch((err) => {
-      console.error("Error in getItems:", err.message);
-      next(err);
+      if (err.name === "ValidationError") {
+        return next(new BadRequestError("Invalid data"));
+      }
+      return next(err);
     });
 };
 
 const deleteItem = (req, res, next) => {
   const { itemId } = req.params;
 
-  if (!isValidObjectId(itemId)) {
-    console.error("Invalid ID format:", itemId);
-    const error = new Error("Invalid item ID.");
-    error.statusCode = BAD_REQUEST;
-    return next(error);
-  }
-
-  return Item.findById(itemId)
-
+  Item.findById(itemId)
+    .orFail()
     .then((item) => {
-      if (!item) {
-        const error = new Error("Item not found.");
-        error.statusCode = NOT_FOUND;
-        throw error;
+      if (String(item.owner) !== req.user._id) {
+        throw new ForbiddenError("You are not allowed to delete this item");
       }
-      if (item.owner.toString() !== req.user._id) {
-        const error = new Error(
-          "You do not have permission to delete this item."
-        );
-        error.statusCode = FORBIDDEN;
-        throw error;
-      }
-
-      return Item.findByIdAndDelete(itemId).then(() =>
-        res.send({ message: "Item deleted successfully." })
-      );
+      return item.deleteOne().then(() => res.send({ message: "Deleted" }));
     })
-    .catch((error) => {
-      console.error("Error in deleteItems", error.message);
-      next(error);
+    .catch((err) => {
+      if (err.name === "DocumentNotFoundError") {
+        return next(new NotFoundError("Item not found"));
+      }
+      if (err.name === "CastError") {
+        return next(new BadRequestError("Invalid item ID"));
+      }
+      return next(err);
     });
 };
 
 const likeItem = (req, res, next) => {
-  const { itemId } = req.params;
-
-  if (!isValidObjectId(itemId)) {
-    console.error("Invalid ID format:", itemId);
-    const error = new Error("Invalid item ID.");
-    error.statusCode = BAD_REQUEST;
-    return next(error);
-  }
-
-  return Item.findByIdAndUpdate(
-    itemId,
+  Item.findByIdAndUpdate(
+    req.params.itemId,
     { $addToSet: { likes: req.user._id } },
     { new: true }
   )
+    .orFail()
     .then((item) => {
-      if (!item) {
-        const error = new Error("Item not found.");
-        error.statusCode = NOT_FOUND;
-        throw error;
-      }
-      return res.send(item);
+      res.send(item);
     })
-    .catch((error) => {
-      console.error("Error in likeItem", error.message);
-      next(error);
+    .catch((err) => {
+      if (err.name === "DocumentNotFoundError") {
+        return next(new NotFoundError("Item not found"));
+      }
+
+      if (err.name === "CastError") {
+        return next(new BadRequestError("Invalid item ID"));
+      }
+      return next(err);
     });
 };
 
-const dislikeItem = (req, res, next) => {
-  const { itemId } = req.params;
-
-  if (!isValidObjectId(itemId)) {
-    console.error("Invalid ID format:", itemId);
-    const error = new Error("Invalid item ID.");
-    error.statusCode = BAD_REQUEST;
-    return next(error);
-  }
-
-  return Item.findByIdAndUpdate(
-    itemId,
+const unlikeItem = (req, res, next) => {
+  Item.findByIdAndUpdate(
+    req.params.itemId,
     { $pull: { likes: req.user._id } },
     { new: true }
   )
+    .orFail()
     .then((item) => {
-      if (!item) {
-        const error = new Error("Item not found.");
-        error.statusCode = NOT_FOUND;
-        throw error;
-      }
-      return res.send(item);
+      res.send(item);
     })
-    .catch((error) => {
-      console.error("Error in dislikeItem", error.message);
-      next(error);
+    .catch((err) => {
+      if (err.name === "DocumentNotFoundError") {
+        return next(new NotFoundError("Item not found"));
+      }
+
+      if (err.name === "CastError") {
+        return next(new BadRequestError("Invalid item ID"));
+      }
+      return next(err);
     });
 };
 
-module.exports = {
-  getItems,
-  createItem,
-  getItem,
-  deleteItem,
-  likeItem,
-  dislikeItem,
-};
+module.exports = { getItems, createItem, deleteItem, likeItem, unlikeItem };
