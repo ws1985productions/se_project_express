@@ -4,16 +4,23 @@ module.exports = {
     node: true,
   },
   extends: ["eslint:recommended", "airbnb-base", "prettier"],
+  overrides: [
+    {
+      env: {
+        node: true,
+      },
+      files: [".eslintrc.{js,cjs}"],
+      parserOptions: {
+        sourceType: "script",
+      },
+    },
+  ],
   parserOptions: {
     ecmaVersion: "latest",
     sourceType: "module",
   },
   rules: {
     "no-underscore-dangle": ["error", { allow: ["_id"] }],
-    "no-console": "warn",
-    "no-unused-vars": ["error", { args: "none", varsIgnorePattern: "^_" }],
-    "consistent-return": "off",
-    "no-shadow": "off",
-    "prefer-destructuring": "off",
+    "no-unused-vars": ["error", { argsIgnorePattern: "next" }],
   },
 };
