@@ -6,11 +6,11 @@ const {
   likeItem,
   unlikeItem,
 } = require("../controllers/clothingItems");
-const authorize = require("../middleware/auth");
+const authorize = require("../middlewares/auth");
 const {
   validateCardBody,
   validateIdParams,
-} = require("../middleware/validation");
+} = require("../middlewares/validation");
 
 router.get("/", getItems);
 

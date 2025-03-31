@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const Item = require("../models/clothingItem.js"); // Ensure this path and model name are correct
+const Item = require("../models/clothingItem"); // Ensure this path and model name are correct
 
 // Connect to MongoDB
 mongoose.connect("mongodb://localhost:27017/itemsDB", {

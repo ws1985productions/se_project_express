@@ -6,7 +6,7 @@ const CONFLICT = 409;
 const SERVER_ERROR_STATUS = 500;
 const REQUEST_CREATED = 201;
 
-const ERROR_MESSAGES = {
+const ERROR = {
   BAD_REQUEST: "Bad request in data or syntax.",
   BAD_AUTHORIZATION: "Authorization required.",
   BAD_CARD_REMOVAL: "You are not allowed to delete this item.",
@@ -26,4 +26,5 @@ module.exports = {
   UNAUTHORIZED,
   FORBIDDEN,
   CONFLICT,
+  ERROR,
 };

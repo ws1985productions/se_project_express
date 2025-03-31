@@ -5,9 +5,9 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const { errors } = require("celebrate");
 const mainRouter = require("./routes/index");
-const errorHandler = require("./middleware/error-handler");
-const { requestLogger, errorLogger } = require("./middleware/logger");
-const { limiter } = require("./middleware/limiter");
+const errorHandler = require("./middlewares/error-handler");
+const { requestLogger, errorLogger } = require("./middlewares/logger");
+const { limiter } = require("./middlewares/limiter");
 
 const app = express();
 const { PORT = 3001 } = process.env;
@@ -26,7 +26,7 @@ app.get("/crash-test", () => {
 });
 app.use(limiter);
 app.use(requestLogger);
-app.use(routes);
+// app.use(routes);
 app.use("/", mainRouter);
 app.use(errorLogger);
 app.use(errors());

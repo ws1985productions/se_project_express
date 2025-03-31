@@ -6,7 +6,7 @@ const NotFoundError = require("../contructors/not-found-err");
 const {
   validateRegisterBody,
   validateLoginBody,
-} = require("../middleware/validation");
+} = require("../middlewares/validation");
 
 router.post("/signup", validateRegisterBody, createUser);
 router.post("/signin", validateLoginBody, login);
